@@ -9,7 +9,7 @@ from keras.optimizers import Adam
 
 class LSTMModel(object):
 
-    def __init__(self, config, contents, words, idx2word,word2idx_dic):
+    def __init__(self, config, contents, words, idx2word, word2idx_dic):
         self.config = config
         self.model = None
         self.contents = contents
@@ -120,6 +120,35 @@ class LSTMModel(object):
                 LambdaCallback(on_epoch_end=self.generate_sample_result)
             ]
         )
+
+    def predict_hide(self, text, temperature=1):
+        '''预估模式4：根据给4个字，生成藏头诗五言绝句'''
+        if not self.model:
+            print('没有预训练模型可用于加载！')
+            return
+        if len(text) != 4:
+            print('藏头诗的输入必须是4个字！')
+            return
+
+        index = random.randint(0, self.poem_num)
+        # 选取随机一首诗的最后max_len个字+给出的首个文字作为初始输入
+        sentence = self.poems[index][1 - self.config.max_len:] + text[0]
+        generate = str(text[0])
+        print('第一行为 ', sentence)
+
+        for i in range(5):
+            next_char = self._pred(sentence, temperature)
+            sentence = sentence[1:] + next_char
+            generate += next_char
+
+        for i in range(3):
+            generate += text[i + 1]
+            sentence = sentence[1:] + text[i + 1]
+            for i in range(5):
+                next_char = self._pred(sentence, temperature)
+                sentence = sentence[1:] + next_char
+                generate += next_char
+        return generate
 
     def sample(self, preds, temperature=1.):
         '''

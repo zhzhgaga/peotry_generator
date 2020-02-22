@@ -1,15 +1,17 @@
+import os
 import random
 
 import numpy as np
 from keras import Input, Model
-from keras.callbacks import ModelCheckpoint, LambdaCallback
+from keras.callbacks import ModelCheckpoint, LambdaCallback, EarlyStopping
+from keras.engine.saving import load_model
 from keras.layers import LSTM, Dropout, Dense
 from keras.optimizers import Adam
 
 
 class LSTMModel(object):
 
-    def __init__(self, config, contents, words, idx2word, word2idx_dic):
+    def __init__(self, config, contents, words, idx2word, word2idx_dic, loaded_model=True):
         self.config = config
         self.model = None
         self.contents = contents
@@ -17,8 +19,11 @@ class LSTMModel(object):
         self.idx2word = idx2word
         self.word2idx_dic = word2idx_dic
         self.words_length = len(words)
+        self.loaded_model = loaded_model
         self.poems = contents.split(config.line_delimiter)
         self.poem_num = len(self.poems)
+        if os.path.exists(self.config.weight_file) and self.loaded_model:
+            self.model = load_model(self.config.weight_file)
 
     def build_model(self):
         input_tensor = Input(shape=(self.config.max_len, self.words_length))
@@ -62,8 +67,6 @@ class LSTMModel(object):
             print("------------设定诗词创作自由度约束参数为{}--------------".format(diversity))
             generate = self.predict_random(temperature=diversity)
             print(generate)
-
-            # 训练时的预测结果写入txt
             with open(self.config.output_file_path, 'a', encoding='utf-8') as f:
                 f.write(generate + '\n')
 
@@ -116,7 +119,8 @@ class LSTMModel(object):
             steps_per_epoch=self.config.batch_size,
             epochs=self.config.epoch_size,
             callbacks=[
-                ModelCheckpoint(self.config.weight_file, save_weights_only=False),
+                EarlyStopping(),
+                ModelCheckpoint(self.config.weight_file, save_weights_only=False, save_best_only=False, verbose=1),
                 LambdaCallback(on_epoch_end=self.generate_sample_result)
             ]
         )

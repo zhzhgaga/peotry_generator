@@ -6,9 +6,9 @@ class Config:
     poetry_file_path = path.join(data_path, 'poetry.txt')
     output_file_path = path.join(data_path,'out','out.txt')
 
-    weight_file = path.join(data_path, 'model', 'poetry_model.h5')
+    weight_file = path.join(data_path, 'model', 'poetry_model_{epoch:02d}.hdf5')
     max_len = 6
     batch_size = 32
-    epoch_size = 10
+    epoch_size = 5
     learning_rate = 0.003
     line_delimiter = '|||'
